@@ -152,6 +152,12 @@ app.post('/api/callback', async (req, res) => {
         "ProfileName": "MP4"
     };
 
+    // DEBUG: Log the exact curl command being executed to PM2 logs
+    const curlEquivalent = `curl -i -X PUT "${putUrl}" -H "Content-Type: application/json" -d '${JSON.stringify(payload)}'`;
+    console.log('\\n--- Sending Packager API Request ---');
+    console.log(curlEquivalent);
+    console.log('--------------------------------------\\n');
+
     try {
         const packagerResponse = await axios.put(putUrl, payload, {
             headers: {
