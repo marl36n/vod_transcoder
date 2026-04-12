@@ -37,7 +37,7 @@ const s3Client = new S3Client(s3Config);
 app.post('/api/presign-upload', async (req, res) => {
     try {
         const { fileName, fileType } = req.body;
-        
+
         if (!fileName || !fileType) {
             return res.status(400).json({ error: 'fileName and fileType are required' });
         }
@@ -51,7 +51,7 @@ app.post('/api/presign-upload', async (req, res) => {
         });
 
         const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-        
+
         res.json({
             uploadUrl,
             s3Key,
@@ -71,7 +71,7 @@ app.post('/api/transcode', async (req, res) => {
         if (!s3Key) {
             return res.status(400).json({ error: 's3Key is required' });
         }
-        
+
         const finalAssetId = assetId || assetIdPrefix;
 
         // Generate download URL
@@ -93,7 +93,7 @@ app.post('/api/transcode', async (req, res) => {
             },
             callback_urls: [`${callbackBaseUrl}/api/callback`]
         };
-        
+
         // Initialize status tracker
         assetStatuses[finalAssetId] = { status: 'TRANSCODING' };
 
@@ -111,9 +111,9 @@ app.post('/api/transcode', async (req, res) => {
 
     } catch (error) {
         console.error('Error triggering transcoding:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to trigger transcoding',
-            details: error.response ? error.response.data : error.message 
+            details: error.response ? error.response.data : error.message
         });
     }
 });
@@ -122,7 +122,7 @@ app.post('/api/transcode', async (req, res) => {
 app.post('/api/callback', async (req, res) => {
     console.log('\n--- Transcoding Callback Received ---');
     console.log('Callback Payload:', JSON.stringify(req.body, null, 2));
-    
+
     // Respond to the transcoder quickly
     res.status(200).send('OK');
 
@@ -132,7 +132,7 @@ app.post('/api/callback', async (req, res) => {
 
     // Check if transcoding was successful based on the 'status' field
     const jobStatus = req.body?.status;
-    
+
     if (jobStatus !== 'DONE') {
         const errorMsg = req.body?.error_msg || 'Unknown error';
         console.error(`Transcoding job did not complete successfully. Status: ${jobStatus}. Error: ${errorMsg}. Cannot proceed to packaging.`);
@@ -148,7 +148,7 @@ app.post('/api/callback', async (req, res) => {
     const putUrl = `${packagerApiUrl}/${assetIdToPackage}`;
     const payload = {
         "CommercialName": "Avatar 5.8",
-        "Source": `file:///opt/peak/nas_storage/vodsource/${assetIdToPackage}/`,
+        "Source": `file:///opt/broadpeak/nas_storage/vodsource/${assetIdToPackage}/`,
         "ProfileName": "MP4"
     };
 
