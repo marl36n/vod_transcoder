@@ -199,11 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/transcode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    s3Key: uploadedS3Key, 
-                    assetId: requestedAssetId, 
+                body: JSON.stringify({
+                    s3Key: uploadedS3Key,
+                    assetId: requestedAssetId,
                     service: serviceInput.value,
-                    packagerService: packagerServiceInput.value 
+                    packagerService: packagerServiceInput.value
                 })
             });
 
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusText.textContent = 'Packaging Completed';
                         packagerResponseDisplay.textContent = JSON.stringify(statusData.packagerResponse, null, 2);
                         clearInterval(pollingInterval);
-                        showAlert('Full lifecycle completed!', 'success');
+                        showAlert('PlayBack Url Generated', 'success');
                     } else if (statusData.status === 'ERROR') {
                         statusText.textContent = 'Pipeline Error';
                         packagerResponseDisplay.textContent = 'Error: ' + JSON.stringify(statusData.error || statusData.packagerResponse, null, 2);
