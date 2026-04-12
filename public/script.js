@@ -105,68 +105,110 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear File
     clearBtn.addEventListener('click', clearFile);
 
-    // Upload Action
+    // Upload Action (Multi-Part Chunking)
     uploadBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
 
         try {
             uploadBtn.disabled = true;
-            uploadBtn.innerHTML = 'Preparing...';
+            uploadBtn.innerHTML = 'Preparing Multi-part...';
             alertBox.classList.add('hidden');
 
-            // 1. Get presigned URL from backend
-            const presignRes = await fetch('/api/presign-upload', {
+            const CHUNK_SIZE = 50 * 1024 * 1024; // 50MB
+            const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+
+            // 1. Initiate Multipart
+            const initRes = await fetch('/api/upload/initiate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fileName: selectedFile.name,
-                    fileType: selectedFile.type || 'application/octet-stream'
-                })
+                body: JSON.stringify({ fileName: selectedFile.name, fileType: selectedFile.type || 'application/octet-stream' })
             });
 
-            if (!presignRes.ok) throw new Error('Failed to start upload process');
+            if (!initRes.ok) throw new Error('Failed to initiate multipart upload');
+            const { uploadId, s3Key } = await initRes.json();
 
-            const { uploadUrl, s3Key } = await presignRes.json();
-
-            // 2. Upload directly to S3 using XHR to track progress
             uploadBtn.classList.add('hidden');
             progressSection.classList.remove('hidden');
-            progressText.textContent = 'Uploading to S3...';
+            progressText.textContent = `Uploading ${totalChunks} chunks (up to 3 at a time)...`;
             progressBar.style.width = '0%';
             progressPercentage.textContent = '0%';
 
-            await new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
+            const uploadedParts = [];
+            let chunksCompleted = 0;
 
-                xhr.upload.addEventListener('progress', (e) => {
-                    if (e.lengthComputable) {
-                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+            const queue = [];
+            for (let i = 0; i < totalChunks; i++) queue.push(i);
+
+            const uploadChunk = async (chunkIndex) => {
+                const partNumber = chunkIndex + 1;
+                const start = chunkIndex * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
+                const chunk = selectedFile.slice(start, end);
+
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        const presignRes = await fetch('/api/upload/presign-part', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ s3Key, uploadId, partNumber })
+                        });
+                        if (!presignRes.ok) throw new Error('Failed to get presigned URL');
+                        const { uploadUrl } = await presignRes.json();
+
+                        const eTag = await new Promise((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.onload = () => {
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                    resolve(xhr.getResponseHeader('ETag') || '"dummy"');
+                                } else {
+                                    reject(new Error(`S3 Error: ${xhr.status}`));
+                                }
+                            };
+                            xhr.onerror = () => reject(new Error('Network break on chunk'));
+                            xhr.open('PUT', uploadUrl, true);
+                            xhr.send(chunk);
+                        });
+
+                        uploadedParts.push({ PartNumber: partNumber, ETag: eTag.replace(/"/g, '') });
+                        
+                        chunksCompleted++;
+                        const percentComplete = Math.round((chunksCompleted / totalChunks) * 100);
                         progressBar.style.width = `${percentComplete}%`;
                         progressPercentage.textContent = `${percentComplete}%`;
+                        return;
+                    } catch (e) {
+                        if (attempt === 3) throw new Error(`Chunk ${partNumber} ultimately failed.`);
+                        await new Promise(r => setTimeout(r, 1000));
                     }
-                });
+                }
+            };
 
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve();
-                    } else {
-                        reject(new Error(`S3 Upload failed with status ${xhr.status}`));
+            const MAX_CONCURRENCY = 3;
+            const workers = [];
+            for (let i = 0; i < MAX_CONCURRENCY; i++) {
+                workers.push((async () => {
+                    while (queue.length > 0) {
+                        const nextChunk = queue.shift();
+                        await uploadChunk(nextChunk);
                     }
-                };
+                })());
+            }
 
-                xhr.onerror = () => reject(new Error('Network error during upload'));
+            await Promise.all(workers);
 
-                xhr.open('PUT', uploadUrl, true);
-                xhr.setRequestHeader('Content-Type', selectedFile.type || 'application/octet-stream');
-                xhr.send(selectedFile);
+            // 3. Complete Upload
+            progressText.textContent = 'Stitching massive file...';
+            const compRes = await fetch('/api/upload/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ s3Key, uploadId, parts: uploadedParts })
             });
 
-            // Upload Success
+            if (!compRes.ok) throw new Error('Failed to stitch final chunks');
+
             uploadedS3Key = s3Key;
             progressText.textContent = 'Upload Complete!';
-            showAlert('Video successfully uploaded to S3.', 'success');
-
-            // Show Transcode Section
+            showAlert('Massive file heavily chunked and uploaded successfully!', 'success');
             transcodeSection.classList.remove('hidden');
 
         } catch (error) {

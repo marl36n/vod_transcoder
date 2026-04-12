@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, GetObjectCommand, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const axios = require('axios');
 const path = require('path');
@@ -33,33 +33,71 @@ if (process.env.AWS_ENDPOINT) {
 
 const s3Client = new S3Client(s3Config);
 
-// 1. Generate a presigned URL for the browser to upload directly to S3
-app.post('/api/presign-upload', async (req, res) => {
+// 1. Multi-part Upload: Initiate
+app.post('/api/upload/initiate', async (req, res) => {
     try {
         const { fileName, fileType } = req.body;
-
-        if (!fileName || !fileType) {
-            return res.status(400).json({ error: 'fileName and fileType are required' });
-        }
+        if (!fileName || !fileType) return res.status(400).json({ error: 'fileName and fileType are required' });
 
         const s3Key = `VOD_MAIN/${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-
-        const command = new PutObjectCommand({
+        const command = new CreateMultipartUploadCommand({
             Bucket: bucketName,
             Key: s3Key,
             ContentType: fileType
         });
 
-        const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-        res.json({
-            uploadUrl,
-            s3Key,
-            bucket: bucketName
-        });
+        const response = await s3Client.send(command);
+        res.json({ uploadId: response.UploadId, s3Key, bucket: bucketName });
     } catch (error) {
-        console.error('Error generating upload presigned URL:', error);
-        res.status(500).json({ error: 'Failed to generate upload URL' });
+        console.error('Error initiating multi-part upload:', error);
+        res.status(500).json({ error: 'Failed to initiate upload' });
+    }
+});
+
+// 1b. Multi-part Upload: Presign Part
+app.post('/api/upload/presign-part', async (req, res) => {
+    try {
+        const { s3Key, uploadId, partNumber } = req.body;
+        if (!s3Key || !uploadId || !partNumber) return res.status(400).json({ error: 's3Key, uploadId, and partNumber are required' });
+
+        const command = new UploadPartCommand({
+            Bucket: bucketName,
+            Key: s3Key,
+            UploadId: uploadId,
+            PartNumber: partNumber
+        });
+
+        const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+        res.json({ uploadUrl });
+    } catch (error) {
+        console.error('Error presigning part:', error);
+        res.status(500).json({ error: 'Failed to presign part' });
+    }
+});
+
+// 1c. Multi-part Upload: Complete
+app.post('/api/upload/complete', async (req, res) => {
+    try {
+        const { s3Key, uploadId, parts } = req.body;
+        if (!s3Key || !uploadId || !parts || !Array.isArray(parts)) return res.status(400).json({ error: 's3Key, uploadId, and parts array are required' });
+
+        // Sort ascending by PartNumber just in case
+        parts.sort((a, b) => a.PartNumber - b.PartNumber);
+
+        const command = new CompleteMultipartUploadCommand({
+            Bucket: bucketName,
+            Key: s3Key,
+            UploadId: uploadId,
+            MultipartUpload: {
+                Parts: parts.map(p => ({ ETag: p.ETag, PartNumber: p.PartNumber }))
+            }
+        });
+
+        const response = await s3Client.send(command);
+        res.json({ success: true, location: response.Location });
+    } catch (error) {
+        console.error('Error completing multi-part upload:', error);
+        res.status(500).json({ error: 'Failed to complete upload' });
     }
 });
 
