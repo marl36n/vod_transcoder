@@ -66,7 +66,7 @@ app.post('/api/presign-upload', async (req, res) => {
 // 2. Generate a download presigned URL and trigger Transcoding API
 app.post('/api/transcode', async (req, res) => {
     try {
-        const { s3Key, assetId } = req.body;
+        const { s3Key, assetId, service } = req.body;
 
         if (!s3Key) {
             return res.status(400).json({ error: 's3Key is required' });
@@ -87,7 +87,7 @@ app.post('/api/transcode', async (req, res) => {
             asset_info: {
                 asset_id: finalAssetId,
                 source_url: downloadUrl,
-                service: "template_h264_high_2997_vod",
+                service: service || "template_h264_high_2997_vod",
                 storage: "hdd",
                 priority: 5
             },
@@ -126,12 +126,21 @@ app.post('/api/callback', async (req, res) => {
     // Respond to the transcoder quickly
     res.status(200).send('OK');
 
-    // Here you would check req.body to see if transcoding was successful
-    // Assuming success...
-    
     // Attempt to extract asset ID carefully
     let assetIdToPackage = req.body?.asset_id || req.body?.AssetId || assetIdPrefix;
     if (req.body?.asset_info?.asset_id) assetIdToPackage = req.body.asset_info.asset_id;
+
+    // Check if transcoding was successful based on the 'status' field
+    const jobStatus = req.body?.status;
+    
+    if (jobStatus !== 'DONE') {
+        const errorMsg = req.body?.error_msg || 'Unknown error';
+        console.error(`Transcoding job did not complete successfully. Status: ${jobStatus}. Error: ${errorMsg}. Cannot proceed to packaging.`);
+        assetStatuses[assetIdToPackage] = { status: 'ERROR', error: `Transcoding failed with status ${jobStatus}: ${errorMsg}` };
+        return;
+    }
+
+    console.log('Transcoding successful (status: DONE). Proceeding to packaging...');
 
     console.log('\nTriggering Packaging API for:', assetIdToPackage);
     assetStatuses[assetIdToPackage] = { status: 'PACKAGING' };
