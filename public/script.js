@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const transcodeSection = document.getElementById('transcodeSection');
     const assetIdInput = document.getElementById('assetIdInput');
     const serviceInput = document.getElementById('serviceInput');
+    const packagerServiceInput = document.getElementById('packagerServiceInput');
     const statusSection = document.getElementById('statusSection');
     const statusText = document.getElementById('statusText');
     const packagerResponseDisplay = document.getElementById('packagerResponseDisplay');
@@ -198,7 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/transcode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ s3Key: uploadedS3Key, assetId: requestedAssetId, service: serviceInput.value })
+                body: JSON.stringify({ 
+                    s3Key: uploadedS3Key, 
+                    assetId: requestedAssetId, 
+                    service: serviceInput.value,
+                    packagerService: packagerServiceInput.value 
+                })
             });
 
             const data = await res.json();

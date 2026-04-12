@@ -66,7 +66,7 @@ app.post('/api/presign-upload', async (req, res) => {
 // 2. Generate a download presigned URL and trigger Transcoding API
 app.post('/api/transcode', async (req, res) => {
     try {
-        const { s3Key, assetId, service } = req.body;
+        const { s3Key, assetId, service, packagerService } = req.body;
 
         if (!s3Key) {
             return res.status(400).json({ error: 's3Key is required' });
@@ -96,8 +96,8 @@ app.post('/api/transcode', async (req, res) => {
             callback_urls: [`${callbackBaseUrl}/api/callback`]
         };
 
-        // Initialize status tracker
-        assetStatuses[finalAssetId] = { status: 'TRANSCODING' };
+        // Initialize status tracker and save the chosen packager service
+        assetStatuses[finalAssetId] = { status: 'TRANSCODING', packagerService: packagerService || 'vodclear' };
 
         const response = await axios.post(apiUrl, apiPayload, {
             headers: {
@@ -148,9 +148,15 @@ app.post('/api/callback', async (req, res) => {
     console.log('Transcoding successful (status: DONE). Proceeding to packaging...');
 
     console.log('\nTriggering Packaging API for:', assetIdToPackage);
-    assetStatuses[assetIdToPackage] = { status: 'PACKAGING' };
+    const selectedPackagerService = assetStatuses[assetIdToPackage]?.packagerService || 'vodclear';
+    assetStatuses[assetIdToPackage] = Object.assign(assetStatuses[assetIdToPackage] || {}, { status: 'PACKAGING' });
 
-    const putUrl = `${packagerApiUrl}/${assetIdToPackage}`;
+    // Dynamically replace 'vodclear' with the chosen service name in the URL
+    const dynamicPackagerUrl = packagerApiUrl.includes('/vodclear')
+        ? packagerApiUrl.replace('/vodclear', `/${selectedPackagerService}`)
+        : `${packagerApiUrl}/${selectedPackagerService}`;
+
+    const putUrl = `${dynamicPackagerUrl}/${assetIdToPackage}`;
     const payload = {
         "CommercialName": "Avatar 5.8",
         "Source": `file:///opt/broadpeak/nas_storage/vodsource/${assetIdToPackage}/`,
