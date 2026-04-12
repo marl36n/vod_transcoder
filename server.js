@@ -72,7 +72,9 @@ app.post('/api/transcode', async (req, res) => {
             return res.status(400).json({ error: 's3Key is required' });
         }
 
-        const finalAssetId = assetId || assetIdPrefix;
+        // Strip away any sub-directory structures the user may have copy/pasted (e.g. 'vods/test_4' -> 'test_4')
+        let rawFinalId = assetId || assetIdPrefix;
+        const finalAssetId = rawFinalId.split('/').pop();
 
         // Generate download URL
         const command = new GetObjectCommand({
@@ -127,8 +129,11 @@ app.post('/api/callback', async (req, res) => {
     res.status(200).send('OK');
 
     // Attempt to extract asset ID carefully
-    let assetIdToPackage = req.body?.asset_id || req.body?.AssetId || assetIdPrefix;
-    if (req.body?.asset_info?.asset_id) assetIdToPackage = req.body.asset_info.asset_id;
+    let rawAssetId = req.body?.asset_id || req.body?.AssetId || assetIdPrefix;
+    if (req.body?.asset_info?.asset_id) rawAssetId = req.body.asset_info.asset_id;
+    
+    // Force strip any 'vods/' or structural prefixes added by the transcoder so it uniquely identifies the asset name
+    const assetIdToPackage = rawAssetId.replace('vods/', '').split('/').pop();
 
     // Check if transcoding was successful based on the 'status' field
     const jobStatus = req.body?.status;
