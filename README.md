@@ -115,6 +115,11 @@ pm2 start server.js --name vod-uploader
 pm2 startup
 # (Run the command that PM2 outputs here)
 pm2 save
+
+pm2 list (Shows if your app is currently "online", how much Memory/CPU it's using, and how many times it has restarted)
+pm2 logs vod-uploader (Shows you the live console output and any errors happening on the backend)
+pm2 restart vod-uploader (Applies your new backend code updates)
+pm2 stop vod-uploader (Turns the app off)
 ```
 
 ### 6. (Optional) Set up an NGINX Reverse Proxy

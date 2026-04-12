@@ -48,7 +48,7 @@ async function main() {
     const putUrl = `${packagerApiUrl}/${assetId}`;
     const payload = {
       "CommercialName": "Avatar 5.8",
-      "Source": `file:///opt/peak/nas_storage/vodsource/${assetId}/`,
+      "Source": `file:///opt/broadpeak/nas_storage/vodsource/${assetId}/`,
       "ProfileName": "MP4"
     };
 
