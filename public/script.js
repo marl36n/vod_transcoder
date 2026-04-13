@@ -159,7 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             const xhr = new XMLHttpRequest();
                             xhr.onload = () => {
                                 if (xhr.status >= 200 && xhr.status < 300) {
-                                    resolve(xhr.getResponseHeader('ETag') || '"dummy"');
+                                    const rawEtag = xhr.getResponseHeader('ETag');
+                                    console.log(`Part ${partNumber} ETag received from server:`, rawEtag);
+                                    if (!rawEtag) {
+                                        console.warn(`WARNING: ETag is null for part ${partNumber}. Your S3/RGW CORS configuration MUST have <ExposeHeader>ETag</ExposeHeader>. Upload will likely fail with InvalidPart!`);
+                                    }
+                                    resolve(rawEtag || '"dummy_etag_needs_cors_fix"');
                                 } else {
                                     reject(new Error(`S3 Error: ${xhr.status}`));
                                 }
@@ -169,7 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             xhr.send(chunk);
                         });
 
-                        uploadedParts.push({ PartNumber: partNumber, ETag: eTag.replace(/"/g, '') });
+                        let finalEtag = eTag;
+                        // S3 / RGW expects ETags to have literal double quotes around them in CompleteMultipartUpload
+                        if (finalEtag && !finalEtag.startsWith('"')) {
+                            finalEtag = '"' + finalEtag + '"';
+                        }
+                        
+                        uploadedParts.push({ PartNumber: partNumber, ETag: finalEtag });
                         
                         chunksCompleted++;
                         const percentComplete = Math.round((chunksCompleted / totalChunks) * 100);
