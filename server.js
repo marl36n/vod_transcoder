@@ -137,6 +137,12 @@ app.post('/api/transcode', async (req, res) => {
         // Initialize status tracker and save the chosen packager service
         assetStatuses[finalAssetId] = { status: 'TRANSCODING', packagerService: packagerService || 'vodclear' };
 
+        // DEBUG: Log the exact curl command being executed to PM2 logs
+        const curlEquivalent = `curl -i -X POST "${apiUrl}" -H "Content-Type: application/json" -d '${JSON.stringify(apiPayload)}'`;
+        console.log('\\n--- Sending Transcoding API Request ---');
+        console.log(curlEquivalent);
+        console.log('---------------------------------------\\n');
+
         const response = await axios.post(apiUrl, apiPayload, {
             headers: {
                 'Content-Type': 'application/json'

@@ -122,6 +122,11 @@ async function main() {
       callback_urls: [`${callbackBaseUrl}/api/callback`]
     };
 
+    const curlEquivalent = `curl -i -X POST "${apiUrl}" -H "Content-Type: application/json" -d '${JSON.stringify(apiPayload)}'`;
+    console.log('\\n--- Sending Transcoding API Request ---');
+    console.log(curlEquivalent);
+    console.log('---------------------------------------\\n');
+
     const response = await axios.post(apiUrl, apiPayload, {
       headers: {
         'Content-Type': 'application/json'
