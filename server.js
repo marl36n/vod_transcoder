@@ -50,7 +50,7 @@ app.post('/api/upload/initiate', async (req, res) => {
         res.json({ uploadId: response.UploadId, s3Key, bucket: bucketName });
     } catch (error) {
         console.error('Error initiating multi-part upload:', error);
-        res.status(500).json({ error: 'Failed to initiate upload' });
+        res.status(500).json({ error: 'Failed to initiate Upload' });
     }
 });
 
@@ -169,7 +169,7 @@ app.post('/api/callback', async (req, res) => {
     // Attempt to extract asset ID carefully
     let rawAssetId = req.body?.asset_id || req.body?.AssetId || assetIdPrefix;
     if (req.body?.asset_info?.asset_id) rawAssetId = req.body.asset_info.asset_id;
-    
+
     // Force strip any 'vods/' or structural prefixes added by the transcoder so it uniquely identifies the asset name
     const assetIdToPackage = rawAssetId.replace('vods/', '').split('/').pop();
 
