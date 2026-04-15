@@ -200,7 +200,9 @@ app.post('/api/callback', async (req, res) => {
         ? packagerApiUrl.replace('/vodclear', `/${selectedPackagerService}`)
         : `${packagerApiUrl}/${selectedPackagerService}`;
 
-    const putUrl = `${dynamicPackagerUrl}/${assetIdToPackage}`;
+    // For the URL, we only want the final asset name so we don't repeat the service/subdirectory
+    const finalAssetIdForUrl = assetIdToPackage.includes('/') ? assetIdToPackage.split('/').pop() : assetIdToPackage;
+    const putUrl = `${dynamicPackagerUrl}/${finalAssetIdForUrl}`;
     const payload = {
         "CommercialName": "Avatar 5.8",
         "Source": `file:///opt/broadpeak/nas_storage/vodsource/${assetIdToPackage}/`,
