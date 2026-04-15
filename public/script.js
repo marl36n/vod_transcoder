@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pollingInterval) clearInterval(pollingInterval);
             pollingInterval = setInterval(async () => {
                 try {
-                    const statusRes = await fetch(`/api/status/${requestedAssetId}`);
+                    const statusRes = await fetch(`/api/status/${encodeURIComponent(requestedAssetId)}`);
                     const statusData = await statusRes.json();
 
                     if (statusData.status === 'PACKAGING') {
