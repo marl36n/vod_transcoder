@@ -234,6 +234,32 @@ app.post('/api/callback', async (req, res) => {
     }
 });
 
+// 3b. Content List endpoint
+app.get('/api/contentslist', async (req, res) => {
+    try {
+        const { ServiceID } = req.query;
+        if (!ServiceID) {
+            return res.status(400).json({ error: 'ServiceID is required' });
+        }
+
+        const baseUrl = new URL(packagerApiUrl).origin;
+        const fetchUrl = `${baseUrl}/asset/contentslist?ServiceID=${ServiceID}`;
+
+        console.log(`\n--- Fetching Contents List ---`);
+        console.log(`URL: ${fetchUrl}`);
+
+        const response = await axios.get(fetchUrl);
+        
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching contents list:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to fetch contents list', 
+            details: error.response ? error.response.data : error.message 
+        });
+    }
+});
+
 // 4. Status endpoint for frontend polling
 app.get('/api/status/:assetId', (req, res) => {
     const status = assetStatuses[req.params.assetId] || { status: 'UNKNOWN' };

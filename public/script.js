@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusSection = document.getElementById('statusSection');
     const statusText = document.getElementById('statusText');
     const packagerResponseDisplay = document.getElementById('packagerResponseDisplay');
+    const toggleViewBtn = document.getElementById('toggleViewBtn');
+    const uploadView = document.getElementById('uploadView');
+    const contentListView = document.getElementById('contentListView');
+    const contentServiceInput = document.getElementById('contentServiceInput');
+    const contentListLoading = document.getElementById('contentListLoading');
+    const contentListWrapper = document.getElementById('contentListWrapper');
+    const contentListDisplay = document.getElementById('contentListDisplay');
 
     // State
     let selectedFile = null;
@@ -104,6 +111,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clear File
     clearBtn.addEventListener('click', clearFile);
+
+    // View Toggle
+    if (toggleViewBtn) {
+        toggleViewBtn.addEventListener('click', () => {
+            if (uploadView.classList.contains('hidden')) {
+                uploadView.classList.remove('hidden');
+                contentListView.classList.add('hidden');
+            } else {
+                uploadView.classList.add('hidden');
+                contentListView.classList.remove('hidden');
+            }
+        });
+    }
+
+    // Fetch Contents List
+    if (contentServiceInput) {
+        contentServiceInput.addEventListener('change', async (e) => {
+            const serviceId = e.target.value;
+            if (!serviceId) return;
+
+            contentListLoading.classList.remove('hidden');
+            contentListWrapper.classList.add('hidden');
+            contentListDisplay.textContent = '';
+            alertBox.classList.add('hidden');
+
+            try {
+                const res = await fetch(`/api/contentslist?ServiceID=${encodeURIComponent(serviceId)}`);
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.error || 'Failed to fetch content list');
+
+                contentListDisplay.textContent = JSON.stringify(data, null, 2);
+                contentListWrapper.classList.remove('hidden');
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                contentListLoading.classList.add('hidden');
+            }
+        });
+    }
 
     // Upload Action (Multi-Part Chunking)
     uploadBtn.addEventListener('click', async () => {
