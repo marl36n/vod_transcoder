@@ -142,7 +142,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!res.ok) throw new Error(data.error || 'Failed to fetch content list');
 
-                contentListDisplay.textContent = JSON.stringify(data, null, 2);
+                contentListDisplay.innerHTML = '';
+                if (data.Contents && data.Contents.length > 0) {
+                    data.Contents.forEach(content => {
+                        const li = document.createElement('li');
+                        li.style.cssText = 'padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
+                        
+                        const textSpan = document.createElement('span');
+                        textSpan.textContent = content.ContentID;
+                        textSpan.style.color = '#a5b4fc';
+                        textSpan.style.fontWeight = '500';
+
+                        const delBtn = document.createElement('button');
+                        delBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                            </svg>
+                        `;
+                        delBtn.style.cssText = 'background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: none; border-radius: 6px; padding: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;';
+                        delBtn.title = 'Delete Content';
+
+                        delBtn.onmouseover = () => delBtn.style.background = 'rgba(239, 68, 68, 0.4)';
+                        delBtn.onmouseout = () => delBtn.style.background = 'rgba(239, 68, 68, 0.2)';
+
+                        delBtn.onclick = async () => {
+                            if (!confirm(`Are you sure you want to delete ${content.ContentID}?`)) return;
+                            
+                            const originalHTML = delBtn.innerHTML;
+                            delBtn.disabled = true;
+                            delBtn.innerHTML = '...';
+                            
+                            try {
+                                const delRes = await fetch(`/api/contents/${encodeURIComponent(serviceId)}/${encodeURIComponent(content.ContentID)}`, {
+                                    method: 'DELETE'
+                                });
+                                const delData = await delRes.json();
+                                if (!delRes.ok) throw new Error(delData.error || 'Failed to delete');
+                                
+                                li.remove();
+                                showAlert(`Deleted ${content.ContentID} successfully`, 'success');
+                            } catch (error) {
+                                delBtn.disabled = false;
+                                delBtn.innerHTML = originalHTML;
+                                showAlert(error.message, 'error');
+                            }
+                        };
+
+                        li.appendChild(textSpan);
+                        li.appendChild(delBtn);
+                        contentListDisplay.appendChild(li);
+                    });
+                } else {
+                    contentListDisplay.innerHTML = '<li style="padding: 1rem; color: #cbd5e1; text-align: center;">No contents found.</li>';
+                }
+                
                 contentListWrapper.classList.remove('hidden');
             } catch (err) {
                 showAlert(err.message, 'error');

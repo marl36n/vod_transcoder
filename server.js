@@ -260,6 +260,28 @@ app.get('/api/contentslist', async (req, res) => {
     }
 });
 
+// 3c. Delete Content endpoint
+app.delete('/api/contents/:serviceId/:contentId', async (req, res) => {
+    try {
+        const { serviceId, contentId } = req.params;
+        const baseUrl = new URL(packagerApiUrl).origin;
+        const deleteUrl = `${baseUrl}/asset/${serviceId}/${contentId}`;
+
+        console.log(`\n--- Deleting Content ---`);
+        console.log(`URL: ${deleteUrl}`);
+
+        const response = await axios.delete(deleteUrl);
+        
+        res.json({ success: true, data: response.data });
+    } catch (error) {
+        console.error('Error deleting content:', error.message);
+        res.status(500).json({ 
+            error: 'Failed to delete content', 
+            details: error.response ? error.response.data : error.message 
+        });
+    }
+});
+
 // 4. Status endpoint for frontend polling
 app.get('/api/status/:assetId', (req, res) => {
     const status = assetStatuses[req.params.assetId] || { status: 'UNKNOWN' };
