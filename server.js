@@ -267,8 +267,10 @@ app.delete('/api/contents/:serviceId/:contentId', async (req, res) => {
         const baseUrl = new URL(packagerApiUrl).origin;
         const deleteUrl = `${baseUrl}/asset/${serviceId}/${contentId}`;
 
-        console.log(`\n--- Deleting Content ---`);
-        console.log(`URL: ${deleteUrl}`);
+        const curlEquivalent = `curl -i -X DELETE "${deleteUrl}"`;
+        console.log(`\n--- Deleting Content Request ---`);
+        console.log(curlEquivalent);
+        console.log(`--------------------------------\n`);
 
         const response = await axios.delete(deleteUrl);
         
