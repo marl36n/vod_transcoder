@@ -23,12 +23,16 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h1>VOD Upload Manager</h1>
-                        <p>Transfer your raw video files securely to S3 and initiate your custom transcoding workflow gracefully
+                        <p>Transfer your raw video files securely to S3 and initiate your custom transcoding workflow
+                            gracefully
                             in the background.</p>
                     </div>
-                    <button class="btn-icon" id="toggleViewBtn" title="Toggle Content List" style="padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 8px; margin-left: 1rem; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.2);">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 24px; height: 24px;">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    <button class="btn-icon" id="toggleViewBtn" title="Toggle Content List"
+                        style="padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 8px; margin-left: 1rem; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.2);">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" style="width: 24px; height: 24px;">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                         </svg>
                     </button>
                 </div>
@@ -90,12 +94,24 @@
                                     Service</label>
                                 <select id="serviceInput" class="form-input"
                                     style="padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
-                                    <option value="template_h264_high_2997_vod" style="color: black;">
-                                        template_h264_high_2997_vod</option>
                                     <option value="pac1_abr_h264_1080p_720p_480p_vod" style="color: black;">
                                         pac1_abr_h264_1080p_720p_480p_vod</option>
-                                    <option value="template_h264_low_2997_vod" style="color: black;">
-                                        template_h264_low_2997_vod</option>
+                                    <option value="pac2_abr_h264_4k_1080p_720p_480p_vod" style="color: black;">
+                                        pac2_abr_h264_4k_1080p_720p_480p_vod</option>
+                                    <option value="pac3_abr_h265_4k_1080p_720p_vod" style="color: black;">
+                                        pac3_abr_h265_4k_1080p_720p_vod</option>
+                                    <option value="pak11_cbr_h264_4k" style="color: black;">pak11_cbr_h264_4k</option>
+                                    <option value="pak12_cbr_h264_1080p" style="color: black;">pak12_cbr_h264_1080p
+                                    </option>
+                                    <option value="pak13_cbr_h264_720p" style="color: black;">pak13_cbr_h264_720p
+                                    </option>
+                                    <option value="pak14_cbr_h264_480p" style="color: black;">pak14_cbr_h264_480p
+                                    </option>
+                                    <option value="pak21_cbr_h265_4k" style="color: black;">pak21_cbr_h265_4k</option>
+                                    <option value="pak22_cbr_h264_1080p" style="color: black;">pak22_cbr_h264_1080p
+                                    </option>
+                                    <option value="pak23_cbr_h264_720p" style="color: black;">pak23_cbr_h264_720p
+                                    </option>
                                 </select>
                             </div>
                             <div style="flex: 1; display: flex; flex-direction: column; gap: 0.5rem;">
@@ -133,8 +149,8 @@
             <div class="card hidden" id="contentListView">
                 <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.5rem; color: white;">Packager Contents</h2>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <label for="contentServiceInput"
-                        style="font-weight: 500; font-size: 0.9rem; color: #cbd5e1;">Select Service ID</label>
+                    <label for="contentServiceInput" style="font-weight: 500; font-size: 0.9rem; color: #cbd5e1;">Select
+                        Service ID</label>
                     <select id="contentServiceInput" class="form-input"
                         style="padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
                         <option value="" disabled selected style="color: black;">Choose a service...</option>
@@ -143,7 +159,8 @@
                         <option value="vodultra" style="color: black;">vodultra</option>
                     </select>
                 </div>
-                <div id="contentListLoading" class="hidden" style="margin-top: 1rem; color: #cbd5e1; font-size: 0.9rem;">
+                <div id="contentListLoading" class="hidden"
+                    style="margin-top: 1rem; color: #cbd5e1; font-size: 0.9rem;">
                     Fetching contents...
                 </div>
                 <div id="contentListWrapper" class="hidden"
