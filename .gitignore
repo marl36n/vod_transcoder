@@ -2,3 +2,5 @@ node_modules
 node_modules/
 .env
 .env_example
+implementationplan_walk
+implementationplan_walk/*
