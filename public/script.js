@@ -381,15 +381,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     const statusRes = await fetch(`/api/status/${encodeURIComponent(requestedAssetId)}`);
                     const statusData = await statusRes.json();
 
-                    if (statusData.status === 'PACKAGING') {
+                    if (statusData.status === 'TRANSCODING') {
+                        statusText.textContent = 'Transcoding in progress...';
+                        if (statusData.progress !== undefined) {
+                            document.getElementById('transcodeProgressContainer').classList.remove('hidden');
+                            document.getElementById('transcodeProgressText').classList.remove('hidden');
+                            document.getElementById('transcodeProgressBar').style.width = `${statusData.progress}%`;
+                            document.getElementById('transcodeProgressText').textContent = `${statusData.progress}%`;
+                            statusText.textContent = `Transcoding...`;
+                        }
+                    } else if (statusData.status === 'PACKAGING') {
+                        // Hide progress bar once packaging starts
+                        document.getElementById('transcodeProgressContainer').classList.add('hidden');
+                        document.getElementById('transcodeProgressText').classList.add('hidden');
                         statusText.textContent = 'Triggering Packager...';
                         packagerResponseDisplay.textContent = 'Callback received. Calling Packaging API...';
                     } else if (statusData.status === 'COMPLETED') {
+                        document.getElementById('transcodeProgressContainer').classList.add('hidden');
+                        document.getElementById('transcodeProgressText').classList.add('hidden');
                         statusText.textContent = 'Packaging Completed';
-                        packagerResponseDisplay.textContent = JSON.stringify(statusData.packagerResponse, null, 2);
+                        const pService = packagerServiceInput.value;
+                        const assetName = requestedAssetId.split('/').pop();
+                        const hlsUrl = `https://${pService}.mydex.tv/bpk-vod/${pService}/default/${requestedAssetId}/${assetName}/index.m3u8`;
+                        const dashUrl = `https://${pService}.mydex.tv/bpk-vod/${pService}/default/${requestedAssetId}/${assetName}/index.mpd`;
+                        
+                        packagerResponseDisplay.innerHTML = `HLS link:\n<a href="${hlsUrl}" target="_blank" style="color: #60a5fa;">${hlsUrl}</a>\n\nDASH :\n\n<a href="${dashUrl}" target="_blank" style="color: #60a5fa;">${dashUrl}</a>`;
                         clearInterval(pollingInterval);
                         showAlert('PlayBack Url Generated', 'success');
                     } else if (statusData.status === 'ERROR') {
+                        document.getElementById('transcodeProgressContainer').classList.add('hidden');
+                        document.getElementById('transcodeProgressText').classList.add('hidden');
                         statusText.textContent = 'Pipeline Error';
                         packagerResponseDisplay.textContent = 'Error: ' + JSON.stringify(statusData.error || statusData.packagerResponse, null, 2);
                         clearInterval(pollingInterval);

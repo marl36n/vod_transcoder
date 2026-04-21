@@ -139,8 +139,15 @@
 
                 <div id="statusSection" class="hidden"
                     style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                    <h3 style="margin-top: 0; font-size: 1.1rem;">Status: <span id="statusText"
-                            style="color: #6ee7b7;">Pending</span></h3>
+                    <h3 style="margin-top: 0; font-size: 1.1rem; display: flex; justify-content: space-between;">
+                        <span>Status: <span id="statusText" style="color: #6ee7b7;">Pending</span></span>
+                        <span id="transcodeProgressText" class="hidden" style="color: #cbd5e1; font-size: 0.9rem;">0%</span>
+                    </h3>
+                    
+                    <div id="transcodeProgressContainer" class="hidden" style="width: 100%; background: rgba(255,255,255,0.1); border-radius: 4px; height: 8px; margin-bottom: 1rem; overflow: hidden;">
+                        <div id="transcodeProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s ease;"></div>
+                    </div>
+
                     <pre id="packagerResponseDisplay"
                         style="background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; margin-bottom: 0; color: #a5b4fc; white-space: pre-wrap; word-wrap: break-word;"></pre>
                 </div>

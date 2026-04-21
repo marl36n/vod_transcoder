@@ -182,6 +182,25 @@ app.post('/api/callback', async (req, res) => {
     // Check if transcoding was successful based on the 'status' field
     const jobStatus = req.body?.status;
 
+    // Handle ongoing progress updates
+    if (jobStatus === 'TRANSCODING' || jobStatus === 'PROCESSING' || jobStatus === 'IN_PROGRESS' || req.body?.progress !== undefined) {
+        let progress = req.body?.progress || req.body?.percentage || 0;
+        
+        // Sometimes progress might be a string like "45%" or a decimal "0.45"
+        if (typeof progress === 'string') progress = parseFloat(progress);
+        if (progress > 0 && progress <= 1) progress = progress * 100;
+        progress = Math.round(progress);
+
+        console.log(`Transcoding in progress for ${assetIdToPackage}: ${progress}%`);
+        assetStatuses[assetIdToPackage] = Object.assign(assetStatuses[assetIdToPackage] || {}, { 
+            status: 'TRANSCODING', 
+            progress: progress 
+        });
+
+        // Don't error out on progress updates
+        if (jobStatus !== 'DONE') return;
+    }
+
     if (jobStatus !== 'DONE') {
         const errorMsg = req.body?.error_msg || 'Unknown error';
         console.error(`Transcoding job did not complete successfully. Status: ${jobStatus}. Error: ${errorMsg}. Cannot proceed to packaging.`);
