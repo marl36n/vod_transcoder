@@ -146,12 +146,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.Contents && data.Contents.length > 0) {
                     data.Contents.forEach(content => {
                         const li = document.createElement('li');
-                        li.style.cssText = 'padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;';
+                        li.style.cssText = 'padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.5rem;';
                         
+                        const topRow = document.createElement('div');
+                        topRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%;';
+
                         const textSpan = document.createElement('span');
                         textSpan.textContent = content.ContentID;
                         textSpan.style.color = '#a5b4fc';
                         textSpan.style.fontWeight = '500';
+
+                        const btnGroup = document.createElement('div');
+                        btnGroup.style.cssText = 'display: flex; gap: 0.5rem;';
+
+                        const assetName = content.ContentID.split('/').pop();
+                        const hlsUrl = content.PlayUrl || content.playUrl || content.URL || content.url || `https://${serviceId}.mydex.tv/bpk-vod/${serviceId}/default/${content.ContentID}/${assetName}/index.m3u8`;
+
+                        const urlDisplay = document.createElement('div');
+                        urlDisplay.style.cssText = 'display: none; background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; word-break: break-all;';
+                        urlDisplay.innerHTML = `<span style="color: #6ee7b7; font-weight: 600;">HLS:</span> <a href="${hlsUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline;">${hlsUrl}</a>`;
+
+                        const playBtn = document.createElement('button');
+                        playBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                            </svg>
+                        `;
+                        playBtn.style.cssText = 'background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: none; border-radius: 6px; padding: 0.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;';
+                        playBtn.title = 'Show Play URL';
+
+                        playBtn.onmouseover = () => playBtn.style.background = 'rgba(59, 130, 246, 0.4)';
+                        playBtn.onmouseout = () => playBtn.style.background = 'rgba(59, 130, 246, 0.2)';
+                        
+                        playBtn.onclick = () => {
+                            if (urlDisplay.style.display === 'none') {
+                                urlDisplay.style.display = 'block';
+                            } else {
+                                urlDisplay.style.display = 'none';
+                            }
+                        };
 
                         const delBtn = document.createElement('button');
                         delBtn.innerHTML = `
@@ -188,8 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         };
 
-                        li.appendChild(textSpan);
-                        li.appendChild(delBtn);
+                        btnGroup.appendChild(playBtn);
+                        btnGroup.appendChild(delBtn);
+                        
+                        topRow.appendChild(textSpan);
+                        topRow.appendChild(btnGroup);
+                        
+                        li.appendChild(topRow);
+                        li.appendChild(urlDisplay);
                         contentListDisplay.appendChild(li);
                     });
                 } else {
