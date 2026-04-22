@@ -222,10 +222,18 @@ app.post('/api/callback', async (req, res) => {
     // For the URL, we only want the final asset name so we don't repeat the service/subdirectory
     const finalAssetIdForUrl = assetIdToPackage.includes('/') ? assetIdToPackage.split('/').pop() : assetIdToPackage;
     const putUrl = `${dynamicPackagerUrl}/${finalAssetIdForUrl}`;
+
+    // Dynamically calculate ProfileName based on selectedPackagerService (e.g., rro-dex -> MP4-DEX)
+    let dynamicProfileName = "MP4";
+    if (selectedPackagerService && selectedPackagerService.includes('-')) {
+        const suffix = selectedPackagerService.split('-').pop().toUpperCase();
+        dynamicProfileName = `MP4-${suffix}`;
+    }
+
     const payload = {
         "CommercialName": "Avatar 5.8",
         "Source": `file:///opt/broadpeak/nas_storage/vodsource/${assetIdToPackage}/`,
-        "ProfileName": "MP4"
+        "ProfileName": dynamicProfileName
     };
 
     // DEBUG: Log the exact curl command being executed to PM2 logs
