@@ -1,0 +1,39 @@
+VOD Uploader Application Update
+The application has been successfully migrated to an Express React-style Web Application. I have built a fresh backend and a fully custom frontend applying modern glassmorphism design principles.
+
+Features Completed
+Interactive UI: A glowing, animated interface for your dashboard.
+Direct Browser-to-S3 Upload: By utilizing S3 presigned URLs, the backend generates an upload slip that your browser uses to upload massive MP4 files directly to AWS. This drastically cuts down server costs and prevents memory timeouts in Express.
+Decoupled Transcoding Trigger: Once the upload successfully pings 100%, the browser reveals a brand new Start Transcoding button.
+Backend Webhook: Clicking the transcode button makes the backend generate a 2-hour presigned URL for downloading the object from S3 and fires off the request to http://192.16.12.2:9080/api/v1/assets.
+How to Test
+Assuming you have Node.js installed:
+
+Inside /home/mehedi-hassan/.gemini/antigravity/scratch/vod-uploader run:
+bash
+npm install
+npm start
+Navigate your web browser to http://localhost:3000
+Mandatory S3 CORS Setup
+Because your browser (running on localhost:3000) is attempting to PUT a large file directly into Amazon S3, S3 will block it unless you whitelist localhost.
+
+Please head to your AWS S3 Console, select your bucket, go to the Permissions tab, scroll down to Cross-origin resource sharing (CORS) and paste this:
+
+json
+[
+    {
+        "AllowedHeaders": [
+            "*"
+        ],
+        "AllowedMethods": [
+            "PUT",
+            "POST",
+            "GET"
+        ],
+        "AllowedOrigins": [
+            "*"
+        ],
+        "ExposeHeaders": []
+    }
+]
+(Note: Change AllowedOrigins from "*" to "http://localhost:3000" in production if needed, to lock down uploads only to your application interface).

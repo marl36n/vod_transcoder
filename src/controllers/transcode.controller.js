@@ -70,6 +70,26 @@ const handleCallback = async (req, res) => {
     const assetIdToPackage = rawAssetId.replace(/^vods\/?/, '');
     const jobStatus = req.body?.status;
 
+    // Handle ongoing progress updates
+    if (jobStatus === 'TRANSCODING' || jobStatus === 'PROCESSING' || jobStatus === 'IN_PROGRESS' || req.body?.progress !== undefined) {
+        let progress = req.body?.progress || req.body?.percentage || 0;
+        
+        if (typeof progress === 'string') progress = parseFloat(progress);
+        if (progress > 0 && progress <= 1) progress = progress * 100;
+        progress = Math.round(progress);
+
+        console.log(`Transcoding in progress for ${assetIdToPackage}: ${progress}%`);
+        
+        const currentData = assetModel.getStatus(assetIdToPackage);
+        assetModel.setStatus(assetIdToPackage, { 
+            ...currentData,
+            status: 'TRANSCODING', 
+            progress: progress 
+        });
+
+        if (jobStatus !== 'DONE') return;
+    }
+
     if (jobStatus !== 'DONE') {
         const errorMsg = req.body?.error_msg || 'Unknown error';
         console.error(`Transcoding job did not complete successfully. Status: ${jobStatus}. Error: ${errorMsg}. Cannot proceed to packaging.`);
@@ -91,10 +111,17 @@ const handleCallback = async (req, res) => {
 
     const finalAssetIdForUrl = assetIdToPackage.includes('/') ? assetIdToPackage.split('/').pop() : assetIdToPackage;
     const putUrl = `${dynamicPackagerUrl}/${finalAssetIdForUrl}`;
+    
+    let dynamicProfileName = "MP4";
+    if (selectedPackagerService && selectedPackagerService.includes('-')) {
+        const suffix = selectedPackagerService.split('-').pop().toUpperCase();
+        dynamicProfileName = `MP4-${suffix}`;
+    }
+
     const payload = {
         "CommercialName": "Avatar 5.8",
         "Source": `file:///opt/broadpeak/nas_storage/vodsource/${assetIdToPackage}/`,
-        "ProfileName": "MP4"
+        "ProfileName": dynamicProfileName
     };
 
     const curlEquivalent = `curl -i -X PUT "${putUrl}" -H "Content-Type: application/json" -d '${JSON.stringify(payload)}'`;

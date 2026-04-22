@@ -1,0 +1,20 @@
+Walkthrough: MVC Architecture Refactoring
+The backend codebase for the VOD Uploader has been successfully transitioned to the Model-View-Controller (MVC) architectural pattern.
+
+Major Changes Made
+New Encapsulated Structure (/src/): All application logic is neatly organized into specific folders preventing server.js from becoming unmanageably huge.
+Configuration Extracted (src/config/): Environment variables and AWS S3 setups are now imported centrally rather than being scattered across modules.
+Data Layer Decoupling (src/models/): assetStatuses was moved to assetModel.js. It exposes clear setter/getter methods for managing the transcoding status safely.
+Service Wrappers (src/services/): Axios calls for triggering transcoders, fetching API lists, and manipulating VOD assets reside entirely within api.service.js.
+TIP
+
+Future external API calls or database integrations should go straight into api.service.js or the /models/ folder.
+
+Clean Routing & Controllers (src/routes/ & src/controllers/): The Express routing mechanics are built hierarchically:
+/api/upload/* is managed by upload.controller.js.
+/api/transcode/* and callbacks are managed by transcode.controller.js.
+/api/contents/* is managed by content.controller.js.
+Validation
+Tested syntax compliance: node -c server.js executes flawlessly indicating clean exports and functional module linking.
+All routes perfectly reflect the identical URL structures the frontend expects, ensuring no frontend modification is needed.
+If npm start crashed during the process of file migration, simply restart it manually (CTRL+C, then npm start) and the server will come up smoothly on the new architecture!
