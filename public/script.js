@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectBtn = document.getElementById('selectBtn');
     const fileListContainer = document.getElementById('fileListContainer');
     const batchProcessBtn = document.getElementById('batchProcessBtn');
+    const globalPackagerInput = document.getElementById('globalPackagerInput');
     
     const alertBox = document.getElementById('alertBox');
     const alertMessage = document.getElementById('alertMessage');
@@ -64,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const div = document.createElement('div');
         div.className = 'file-row';
         div.id = `file-row-${id}`;
-        
         div.innerHTML = `
             <div class="file-row-header">
                 <span class="file-row-name">${file.name}</span>
@@ -90,14 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <option value="pak23_cbr_h264_720p">pak23_cbr_h264_720p</option>
                     </select>
                 </div>
-                <div>
-                    <label class="file-row-label">Packager Service</label>
-                    <select class="file-row-input packager-input">
-                        <option value="rro-mnc">rro-mnc</option>
-                        <option value="rro-dex">rro-dex</option>
-                        <option value="vodultra">vodultra</option>
-                    </select>
-                </div>
             </div>
             <div class="progress-section hidden" style="margin-top: 8px; margin-bottom: 0;">
                 <div class="progress-info">
@@ -110,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="file-row-links hidden"></div>
         `;
-
         div.querySelector('.file-row-remove').addEventListener('click', () => removeFile(id));
         return div;
     };
@@ -407,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (row.classList.contains('success')) return null;
             const assetId = row.querySelector('.asset-id-input').value.trim();
             const service = row.querySelector('.service-input').value;
-            const packager = row.querySelector('.packager-input').value;
+            const packager = globalPackagerInput ? globalPackagerInput.value : 'rro-mnc';
             if (!assetId) {
                 setRowStatus(row, 'error', 'Error: Missing Asset ID');
                 return null;
