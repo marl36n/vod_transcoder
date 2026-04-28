@@ -389,45 +389,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+
     batchProcessBtn.addEventListener('click', async () => {
         if (fileEntries.length === 0) return;
-        
+
         // Disable UI
         alertBox.classList.add('hidden');
         batchProcessBtn.disabled = true;
-        batchProcessBtn.innerHTML = 'Processing Batch...';
+        batchProcessBtn.innerHTML = 'Uploading Files...';
         dropzone.style.pointerEvents = 'none';
         dropzone.style.opacity = '0.5';
-
         document.querySelectorAll('.file-row-remove, .file-row-input').forEach(el => el.disabled = true);
 
-        for (const entry of fileEntries) {
+        // 1. Upload all files to S3 in parallel
+        const uploadPromises = fileEntries.map(async entry => {
             const row = entry.rowElement;
-            
-            // Check if already done or error? We just process all that aren't success.
-            if (row.classList.contains('success')) continue;
-            
+            if (row.classList.contains('success')) return null;
             const assetId = row.querySelector('.asset-id-input').value.trim();
             const service = row.querySelector('.service-input').value;
             const packager = row.querySelector('.packager-input').value;
-
             if (!assetId) {
                 setRowStatus(row, 'error', 'Error: Missing Asset ID');
-                continue;
+                return null;
             }
-
             try {
                 const s3Key = await processUpload(entry, row);
-                await processTranscode(row, s3Key, assetId, service, packager);
+                return { s3Key, assetId, service, packagerService: packager, row };
             } catch (err) {
-                console.error(`Error processing ${entry.file.name}:`, err);
-                setRowStatus(row, 'error', `Error: ${err.message}`);
-                // Continue to next file
+                setRowStatus(row, 'error', `Upload Error: ${err.message}`);
+                return null;
             }
+        });
+
+        const uploadResults = await Promise.all(uploadPromises);
+        const toProcess = uploadResults.filter(Boolean);
+
+        if (toProcess.length === 0) {
+            batchProcessBtn.innerHTML = 'No Files Uploaded';
+            showAlert('No files uploaded successfully.', 'error');
+            document.querySelectorAll('.file-row-input').forEach(el => el.disabled = false);
+            dropzone.style.pointerEvents = 'auto';
+            dropzone.style.opacity = '1';
+            return;
         }
 
-        batchProcessBtn.innerHTML = 'Batch Process Complete';
-        showAlert('Batch processing finished. Check individual rows for status.', 'success');
+        batchProcessBtn.innerHTML = 'Triggering Processing...';
+
+        // 2. Trigger batch processing on backend
+        try {
+            const res = await fetch('/api/batch-transcode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: toProcess.map(f => ({
+                    s3Key: f.s3Key,
+                    assetId: f.assetId,
+                    service: f.service,
+                    packagerService: f.packagerService
+                })) })
+            });
+            if (!res.ok) throw new Error('Failed to start batch processing');
+            showAlert('All files uploaded. Processing started on server.', 'success');
+            batchProcessBtn.innerHTML = 'Batch Upload Complete';
+        } catch (err) {
+            showAlert('Error starting batch processing: ' + err.message, 'error');
+            batchProcessBtn.innerHTML = 'Batch Upload Error';
+        }
+
         document.querySelectorAll('.file-row-input').forEach(el => el.disabled = false);
         dropzone.style.pointerEvents = 'auto';
         dropzone.style.opacity = '1';

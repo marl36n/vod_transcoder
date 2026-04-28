@@ -320,3 +320,31 @@ app.get('/api/status/:assetId', (req, res) => {
 app.listen(port, () => {
     console.log(`VOD Uploader UI running at http://localhost:${port}`);
 });
+// 5. Batch transcode endpoint
+app.post('/api/batch-transcode', async (req, res) => {
+    const { files } = req.body; // [{ s3Key, assetId, service, packagerService }]
+    if (!Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ error: 'files array required' });
+    }
+
+    // Process files sequentially (async but not blocking response)
+    (async () => {
+        for (const file of files) {
+            try {
+                // Trigger transcoding for each file
+                await axios.post('http://localhost:' + port + '/api/transcode', {
+                    s3Key: file.s3Key,
+                    assetId: file.assetId,
+                    service: file.service,
+                    packagerService: file.packagerService
+                });
+                // Wait a bit between jobs to avoid overloading
+                await new Promise(r => setTimeout(r, 1000));
+            } catch (err) {
+                console.error('Batch transcode error for', file.assetId, err.message);
+            }
+        }
+    })();
+
+    res.json({ success: true, message: 'Batch processing started' });
+});
