@@ -148,8 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error(data.error || 'Failed to fetch content list');
 
                 contentListDisplay.innerHTML = '';
-                if (data.Contents && data.Contents.length > 0) {
-                    data.Contents.forEach(content => {
+                const activeContents = data.Contents ? data.Contents.filter(c => c.DeploymentState !== 'eDeploymentStateDeleted') : [];
+                if (activeContents.length > 0) {
+                    activeContents.forEach(content => {
                         const li = document.createElement('li');
                         li.style.cssText = 'padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.5rem;';
                         

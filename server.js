@@ -219,11 +219,8 @@ app.post('/api/callback', async (req, res) => {
         ? packagerApiUrl.replace('/vodclear', `/${selectedPackagerService}`)
         : `${packagerApiUrl}/${selectedPackagerService}`;
 
-    // For the URL, we want to preserve subdirectories but avoid repeating the service name
-    let finalAssetIdForUrl = assetIdToPackage;
-    if (finalAssetIdForUrl.startsWith(`${selectedPackagerService}/`)) {
-        finalAssetIdForUrl = finalAssetIdForUrl.substring(selectedPackagerService.length + 1);
-    }
+    // For the URL, we only want the final asset name so we don't repeat the service/subdirectory
+    const finalAssetIdForUrl = assetIdToPackage.includes('/') ? assetIdToPackage.split('/').pop() : assetIdToPackage;
     const putUrl = `${dynamicPackagerUrl}/${finalAssetIdForUrl}`;
 
     // Dynamically calculate ProfileName based on selectedPackagerService (e.g., rro-dex -> MP4-DEX)
@@ -298,12 +295,28 @@ app.delete('/api/contents/:serviceId/:contentId', async (req, res) => {
         const deleteUrl = `${baseUrl}/asset/${serviceId}/${contentId}`;
 
         const curlEquivalent = `curl -i -X DELETE "${deleteUrl}"`;
-        console.log(`\n--- Deleting Content Request ---`);
+        console.log(`\n--- Deleting Content Request (Packager) ---`);
         console.log(curlEquivalent);
         console.log(`--------------------------------\n`);
 
         const response = await axios.delete(deleteUrl);
         
+        // Also call the Transcoder delete API
+        const baseTranscoderUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+        const transcoderDeleteUrl = `${baseTranscoderUrl}/${serviceId}/${encodeURIComponent(contentId)}`;
+        const transcoderCurlEquivalent = `curl -i -X DELETE "${transcoderDeleteUrl}"`;
+        
+        console.log(`\n--- Deleting Content Request (Transcoder) ---`);
+        console.log(transcoderCurlEquivalent);
+        console.log(`--------------------------------\n`);
+        
+        try {
+            await axios.delete(transcoderDeleteUrl);
+        } catch (transcoderError) {
+            console.error('Error deleting content from Transcoder API:', transcoderError.message);
+            // We proceed anyway since the primary packager delete succeeded
+        }
+
         res.json({ success: true, data: response.data });
     } catch (error) {
         console.error('Error deleting content:', error.message);
