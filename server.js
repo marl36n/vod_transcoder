@@ -219,8 +219,11 @@ app.post('/api/callback', async (req, res) => {
         ? packagerApiUrl.replace('/vodclear', `/${selectedPackagerService}`)
         : `${packagerApiUrl}/${selectedPackagerService}`;
 
-    // For the URL, we only want the final asset name so we don't repeat the service/subdirectory
-    const finalAssetIdForUrl = assetIdToPackage.includes('/') ? assetIdToPackage.split('/').pop() : assetIdToPackage;
+    // For the URL, we want to preserve subdirectories but avoid repeating the service name
+    let finalAssetIdForUrl = assetIdToPackage;
+    if (finalAssetIdForUrl.startsWith(`${selectedPackagerService}/`)) {
+        finalAssetIdForUrl = finalAssetIdForUrl.substring(selectedPackagerService.length + 1);
+    }
     const putUrl = `${dynamicPackagerUrl}/${finalAssetIdForUrl}`;
 
     // Dynamically calculate ProfileName based on selectedPackagerService (e.g., rro-dex -> MP4-DEX)
