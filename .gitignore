@@ -4,3 +4,4 @@ node_modules/
 .env_example
 implementationplan_walk
 implementationplan_walk/*
+setup_db.js

@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleViewBtn = document.getElementById('toggleViewBtn');
     const uploadView = document.getElementById('uploadView');
     const contentListView = document.getElementById('contentListView');
+    const loginView = document.getElementById('loginView');
+    const loginForm = document.getElementById('loginForm');
+    const logoutBtn = document.getElementById('logoutBtn');
     const contentServiceInput = document.getElementById('contentServiceInput');
     const contentListLoading = document.getElementById('contentListLoading');
     const contentListWrapper = document.getElementById('contentListWrapper');
@@ -21,6 +24,71 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_FILES = 15;
     let fileEntries = []; // Array of { id, file }
     let globalIdSeq = 0;
+
+    // Authentication Logic
+    const checkAuth = async () => {
+        try {
+            const res = await fetch('/api/me');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.loggedIn) {
+                    loginView.classList.add('hidden');
+                    uploadView.classList.remove('hidden');
+                    logoutBtn.classList.remove('hidden');
+                    toggleViewBtn.classList.remove('hidden');
+                }
+            }
+        } catch (e) {
+            console.error('Auth check failed', e);
+        }
+    };
+    checkAuth();
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('usernameInput').value;
+            const password = document.getElementById('passwordInput').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showAlert('Logged in successfully');
+                    loginView.classList.add('hidden');
+                    uploadView.classList.remove('hidden');
+                    logoutBtn.classList.remove('hidden');
+                    toggleViewBtn.classList.remove('hidden');
+                    document.getElementById('passwordInput').value = '';
+                } else {
+                    showAlert(data.error || 'Login failed', 'error');
+                }
+            } catch (err) {
+                showAlert('Login error: ' + err.message, 'error');
+            }
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                showAlert('Logged out successfully');
+                loginView.classList.remove('hidden');
+                uploadView.classList.add('hidden');
+                contentListView.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+                toggleViewBtn.classList.add('hidden');
+            } catch (err) {
+                console.error('Logout error', err);
+            }
+        });
+    }
 
     const showAlert = (message, type = 'success') => {
         alertMessage.textContent = message;

@@ -5,6 +5,10 @@ const { S3Client, PutObjectCommand, GetObjectCommand, CreateMultipartUploadComma
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const axios = require('axios');
 const path = require('path');
+const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,7 +19,72 @@ const assetStatuses = {};
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Database Configuration
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASS || '',
+    database: process.env.DB_NAME || 'vod_uploader_db',
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_change_me_in_production');
+        req.user = decoded;
+        next();
+    } catch (ex) {
+        res.status(400).json({ error: 'Invalid token.' });
+    }
+};
+
+// Auth Routes
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+
+        const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+        if (rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+
+        const user = rows[0];
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
+
+        const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET || 'super_secret_jwt_key_change_me_in_production', { expiresIn: '24h' });
+        
+        res.cookie('token', token, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+        res.json({ success: true, message: 'Logged in successfully', user: { username: user.username } });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/api/logout', (req, res) => {
+    res.clearCookie('token');
+    res.json({ success: true, message: 'Logged out successfully' });
+});
+
+app.get('/api/me', (req, res) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ loggedIn: false });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key_change_me_in_production');
+        res.json({ loggedIn: true, user: { username: decoded.username } });
+    } catch (ex) {
+        res.status(401).json({ loggedIn: false });
+    }
+});
 
 // Configuration
 const region = process.env.AWS_REGION || 'us-east-1';
@@ -34,7 +103,7 @@ if (process.env.AWS_ENDPOINT) {
 const s3Client = new S3Client(s3Config);
 
 // 1. Multi-part Upload: Initiate
-app.post('/api/upload/initiate', async (req, res) => {
+app.post('/api/upload/initiate', authenticateToken, async (req, res) => {
     try {
         const { fileName, fileType } = req.body;
         if (!fileName || !fileType) return res.status(400).json({ error: 'fileName and fileType are required' });
@@ -55,7 +124,7 @@ app.post('/api/upload/initiate', async (req, res) => {
 });
 
 // 1b. Multi-part Upload: Presign Part
-app.post('/api/upload/presign-part', async (req, res) => {
+app.post('/api/upload/presign-part', authenticateToken, async (req, res) => {
     try {
         const { s3Key, uploadId, partNumber } = req.body;
         if (!s3Key || !uploadId || !partNumber) return res.status(400).json({ error: 's3Key, uploadId, and partNumber are required' });
@@ -76,7 +145,7 @@ app.post('/api/upload/presign-part', async (req, res) => {
 });
 
 // 1c. Multi-part Upload: Complete
-app.post('/api/upload/complete', async (req, res) => {
+app.post('/api/upload/complete', authenticateToken, async (req, res) => {
     try {
         const { s3Key, uploadId, parts } = req.body;
         if (!s3Key || !uploadId || !parts || !Array.isArray(parts)) return res.status(400).json({ error: 's3Key, uploadId, and parts array are required' });
@@ -102,7 +171,7 @@ app.post('/api/upload/complete', async (req, res) => {
 });
 
 // 2. Generate a download presigned URL and trigger Transcoding API
-app.post('/api/transcode', async (req, res) => {
+app.post('/api/transcode', authenticateToken, async (req, res) => {
     try {
         const { s3Key, assetId, service, packagerService } = req.body;
 
@@ -262,7 +331,7 @@ app.post('/api/callback', async (req, res) => {
 });
 
 // 3b. Content List endpoint
-app.get('/api/contentslist', async (req, res) => {
+app.get('/api/contentslist', authenticateToken, async (req, res) => {
     try {
         const { ServiceID } = req.query;
         if (!ServiceID) {
@@ -288,7 +357,7 @@ app.get('/api/contentslist', async (req, res) => {
 });
 
 // 3c. Delete Content endpoint
-app.delete('/api/contents/:serviceId/:contentId', async (req, res) => {
+app.delete('/api/contents/:serviceId/:contentId', authenticateToken, async (req, res) => {
     try {
         const { serviceId, contentId } = req.params;
         const baseUrl = new URL(packagerApiUrl).origin;
@@ -328,7 +397,7 @@ app.delete('/api/contents/:serviceId/:contentId', async (req, res) => {
 });
 
 // 4. Status endpoint for frontend polling
-app.get('/api/status/:assetId', (req, res) => {
+app.get('/api/status/:assetId', authenticateToken, (req, res) => {
     const status = assetStatuses[req.params.assetId] || { status: 'UNKNOWN' };
     res.json(status);
 });
@@ -337,7 +406,7 @@ app.listen(port, () => {
     console.log(`VOD Uploader UI running at http://localhost:${port}`);
 });
 // 5. Batch transcode endpoint
-app.post('/api/batch-transcode', async (req, res) => {
+app.post('/api/batch-transcode', authenticateToken, async (req, res) => {
     const { files } = req.body; // [{ s3Key, assetId, service, packagerService }]
     if (!Array.isArray(files) || files.length === 0) {
         return res.status(400).json({ error: 'files array required' });
