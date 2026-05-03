@@ -405,19 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return s3Key;
     };
 
-    const processTranscode = async (row, s3Key, assetId, service, packagerService) => {
-        setRowStatus(row, 'active', 'Triggering Transcoder...', 0);
-        const res = await fetch('/api/transcode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ s3Key, assetId, service, packagerService })
-        });
-        if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || 'Failed to trigger transcoder');
-        }
-
-        // Poll
+    const pollStatus = async (row, assetId, packagerService) => {
+        setRowStatus(row, 'active', 'Processing...', 0);
         while (true) {
             await sleep(3000);
             try {
@@ -440,6 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     linksDiv.innerHTML = `<strong>HLS:</strong> <a href="${hlsUrl}" target="_blank">${hlsUrl}</a><br/><strong>DASH:</strong> <a href="${dashUrl}" target="_blank">${dashUrl}</a>`;
                     return;
                 } else if (statusData.status === 'ERROR') {
+                    setRowStatus(row, 'error', `Error: ${statusData.error || 'Unknown error'}`);
                     throw new Error(JSON.stringify(statusData.error || statusData.packagerResponse));
                 }
             } catch(e) {
@@ -510,6 +500,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!res.ok) throw new Error('Failed to start batch processing');
             showAlert('All files uploaded. Processing started on server.', 'success');
             batchProcessBtn.innerHTML = 'Batch Upload Complete';
+            
+            // Start polling for each file asynchronously
+            toProcess.forEach(f => {
+                pollStatus(f.row, f.assetId, f.packagerService).catch(err => {
+                    console.error('Polling failed for', f.assetId, err);
+                });
+            });
         } catch (err) {
             showAlert('Error starting batch processing: ' + err.message, 'error');
             batchProcessBtn.innerHTML = 'Batch Upload Error';
