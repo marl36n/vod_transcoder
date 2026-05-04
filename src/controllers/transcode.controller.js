@@ -5,43 +5,47 @@ const env = require('../config/env.config');
 const assetModel = require('../models/assetModel');
 const apiService = require('../services/api.service');
 
+const processTranscode = async (data) => {
+    const { s3Key, assetId, service, packagerService } = data;
+
+    if (!s3Key) {
+        throw new Error('s3Key is required');
+    }
+
+    let rawFinalId = assetId || env.app.assetIdPrefix;
+    const finalAssetId = rawFinalId.replace(/^vods\/?/, '');
+
+    const command = new GetObjectCommand({
+        Bucket: env.aws.bucketName,
+        Key: s3Key,
+    });
+
+    const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 7200 });
+
+    const apiPayload = {
+        asset_info: {
+            asset_id: finalAssetId,
+            source_url: downloadUrl,
+            service: service || "template_h264_high_2997_vod",
+            storage: "hdd",
+            priority: 5
+        },
+        callback_urls: [`${env.app.callbackBaseUrl}/api/callback`]
+    };
+
+    assetModel.setStatus(finalAssetId, { status: 'TRANSCODING', packagerService: packagerService || 'vodclear' });
+
+    const curlEquivalent = `curl -i -X POST "${env.apis.transcoding}" -H "Content-Type: application/json" -d '${JSON.stringify(apiPayload)}'`;
+    console.log('\n--- Sending Transcoding API Request ---');
+    console.log(curlEquivalent);
+    console.log('---------------------------------------\n');
+
+    return await apiService.triggerTranscode(env.apis.transcoding, apiPayload);
+};
+
 const triggerTranscode = async (req, res) => {
     try {
-        const { s3Key, assetId, service, packagerService } = req.body;
-
-        if (!s3Key) {
-            return res.status(400).json({ error: 's3Key is required' });
-        }
-
-        let rawFinalId = assetId || env.app.assetIdPrefix;
-        const finalAssetId = rawFinalId.replace(/^vods\/?/, '');
-
-        const command = new GetObjectCommand({
-            Bucket: env.aws.bucketName,
-            Key: s3Key,
-        });
-
-        const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn: 7200 });
-
-        const apiPayload = {
-            asset_info: {
-                asset_id: finalAssetId,
-                source_url: downloadUrl,
-                service: service || "template_h264_high_2997_vod",
-                storage: "hdd",
-                priority: 5
-            },
-            callback_urls: [`${env.app.callbackBaseUrl}/api/callback`]
-        };
-
-        assetModel.setStatus(finalAssetId, { status: 'TRANSCODING', packagerService: packagerService || 'vodclear' });
-
-        const curlEquivalent = `curl -i -X POST "${env.apis.transcoding}" -H "Content-Type: application/json" -d '${JSON.stringify(apiPayload)}'`;
-        console.log('\n--- Sending Transcoding API Request ---');
-        console.log(curlEquivalent);
-        console.log('---------------------------------------\n');
-
-        const response = await apiService.triggerTranscode(env.apis.transcoding, apiPayload);
+        const response = await processTranscode(req.body);
 
         res.json({
             success: true,
@@ -56,6 +60,26 @@ const triggerTranscode = async (req, res) => {
             details: error.response ? error.response.data : error.message
         });
     }
+};
+
+const batchTranscode = async (req, res) => {
+    const { files } = req.body;
+    if (!Array.isArray(files) || files.length === 0) {
+        return res.status(400).json({ error: 'files array required' });
+    }
+
+    (async () => {
+        for (const file of files) {
+            try {
+                await processTranscode(file);
+                await new Promise(r => setTimeout(r, 1000));
+            } catch (err) {
+                console.error('Batch transcode error for', file.assetId, err.message);
+            }
+        }
+    })();
+
+    res.json({ success: true, message: 'Batch processing started' });
 };
 
 const handleCallback = async (req, res) => {
@@ -144,4 +168,4 @@ const handleCallback = async (req, res) => {
     }
 };
 
-module.exports = { triggerTranscode, handleCallback };
+module.exports = { triggerTranscode, batchTranscode, handleCallback };

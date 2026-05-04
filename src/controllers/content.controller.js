@@ -39,6 +39,22 @@ const deleteContent = async (req, res) => {
 
         const response = await apiService.deleteContent(deleteUrl);
         
+        // Also call the Transcoder delete API
+        const baseTranscoderUrl = env.apis.transcoding.endsWith('/') ? env.apis.transcoding.slice(0, -1) : env.apis.transcoding;
+        const transcoderDeleteUrl = `${baseTranscoderUrl}/${serviceId}/${encodeURIComponent(contentId)}`;
+        const transcoderCurlEquivalent = `curl -i -X DELETE "${transcoderDeleteUrl}"`;
+        
+        console.log(`\n--- Deleting Content Request (Transcoder) ---`);
+        console.log(transcoderCurlEquivalent);
+        console.log(`--------------------------------\n`);
+        
+        try {
+            await apiService.deleteContent(transcoderDeleteUrl);
+        } catch (transcoderError) {
+            console.error('Error deleting content from Transcoder API:', transcoderError.message);
+            // We proceed anyway since the primary packager delete succeeded
+        }
+        
         res.json({ success: true, data: response.data });
     } catch (error) {
         console.error('Error deleting content:', error.message);
