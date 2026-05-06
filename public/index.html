@@ -96,7 +96,15 @@
             </div>
 
             <div class="card hidden" id="contentListView">
-                <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.5rem; color: white;">Packager Contents</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="margin: 0; font-size: 1.5rem; color: white;">Packager Contents</h2>
+                    <button id="downloadExcelBtn" class="hidden" style="padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Download Excel
+                    </button>
+                </div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <label for="contentServiceInput" style="font-weight: 500; font-size: 0.9rem; color: #cbd5e1;">Select
                         Service ID</label>
@@ -126,6 +134,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
 

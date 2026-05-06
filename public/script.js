@@ -19,11 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentListLoading = document.getElementById('contentListLoading');
     const contentListWrapper = document.getElementById('contentListWrapper');
     const contentListDisplay = document.getElementById('contentListDisplay');
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
 
     // State
     const MAX_FILES = 15;
     let fileEntries = []; // Array of { id, file }
     let globalIdSeq = 0;
+    let currentContentList = [];
 
     // Authentication Logic
     const checkAuth = async () => {
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contentListWrapper.classList.add('hidden');
             contentListDisplay.textContent = '';
             alertBox.classList.add('hidden');
+            if (downloadExcelBtn) downloadExcelBtn.classList.add('hidden');
 
             try {
                 const res = await fetch(`/api/contentslist?ServiceID=${encodeURIComponent(serviceId)}`);
@@ -217,7 +220,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 contentListDisplay.innerHTML = '';
                 const activeContents = data.Contents ? data.Contents.filter(c => c.DeploymentState !== 'eDeploymentStateDeleted') : [];
+                currentContentList = activeContents;
+                
                 if (activeContents.length > 0) {
+                    if (downloadExcelBtn) downloadExcelBtn.classList.remove('hidden');
                     activeContents.forEach(content => {
                         const li = document.createElement('li');
                         li.style.cssText = 'padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.5rem;';
@@ -295,14 +301,46 @@ document.addEventListener('DOMContentLoaded', () => {
                         contentListDisplay.appendChild(li);
                     });
                 } else {
+                    if (downloadExcelBtn) downloadExcelBtn.classList.add('hidden');
                     contentListDisplay.innerHTML = '<li style="padding: 1rem; color: #cbd5e1; text-align: center;">No contents found.</li>';
                 }
                 contentListWrapper.classList.remove('hidden');
             } catch (err) {
                 showAlert(err.message, 'error');
+                if (downloadExcelBtn) downloadExcelBtn.classList.add('hidden');
             } finally {
                 contentListLoading.classList.add('hidden');
             }
+        });
+    }
+
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', () => {
+            if (!currentContentList || currentContentList.length === 0) return;
+            
+            const serviceId = contentServiceInput.value;
+            const excelData = currentContentList.map(content => {
+                const assetName = content.ContentID.split('/').pop();
+                const hlsUrl = content.PlayUrl || content.playUrl || content.URL || content.url || `https://${serviceId}.mydex.tv/bpk-vod/${serviceId}/default/${content.ContentID}/${assetName}/index.m3u8`;
+                
+                return {
+                    'Content Name': content.ContentID,
+                    'Packaged URL': hlsUrl
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            
+            const wscols = [
+                {wch: 40}, // Content Name
+                {wch: 100} // Packaged URL
+            ];
+            worksheet['!cols'] = wscols;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Contents");
+            
+            XLSX.writeFile(workbook, `ContentList_${serviceId}.xlsx`);
         });
     }
 
