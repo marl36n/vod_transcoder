@@ -26,6 +26,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let fileEntries = []; // Array of { id, file }
     let globalIdSeq = 0;
     let currentContentList = [];
+    let currentUserPackagerService = null;
+
+    const filterPackagerOptions = (serviceName) => {
+        if (!serviceName) return;
+        
+        if (globalPackagerInput) {
+            Array.from(globalPackagerInput.options).forEach(opt => {
+                if (opt.value !== serviceName) opt.remove();
+            });
+            if (globalPackagerInput.options.length > 0) globalPackagerInput.value = globalPackagerInput.options[0].value;
+        }
+
+        if (contentServiceInput) {
+            Array.from(contentServiceInput.options).forEach(opt => {
+                if (opt.value !== '' && opt.value !== serviceName) opt.remove();
+            });
+        }
+    };
 
     // Authentication Logic
     const checkAuth = async () => {
@@ -34,6 +52,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 if (data.loggedIn) {
+                    if (data.user && data.user.packager_service) {
+                        currentUserPackagerService = data.user.packager_service;
+                        filterPackagerOptions(currentUserPackagerService);
+                    }
                     loginView.classList.add('hidden');
                     uploadView.classList.remove('hidden');
                     logoutBtn.classList.remove('hidden');
@@ -61,6 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    if (data.user && data.user.packager_service) {
+                        currentUserPackagerService = data.user.packager_service;
+                        filterPackagerOptions(currentUserPackagerService);
+                    }
                     showAlert('Logged in successfully');
                     loginView.classList.add('hidden');
                     uploadView.classList.remove('hidden');
