@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileListContainer = document.getElementById('fileListContainer');
     const batchProcessBtn = document.getElementById('batchProcessBtn');
     const globalPackagerInput = document.getElementById('globalPackagerInput');
-    
+
     const alertBox = document.getElementById('alertBox');
     const alertMessage = document.getElementById('alertMessage');
     const toggleViewBtn = document.getElementById('toggleViewBtn');
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const filterPackagerOptions = (serviceName) => {
         if (!serviceName) return;
-        
+
         if (globalPackagerInput) {
             Array.from(globalPackagerInput.options).forEach(opt => {
                 if (opt.value !== serviceName) opt.remove();
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = globalIdSeq++;
             fileEntries.push({ id, file, rowElement: createRowElement(id, file) });
         });
-        
+
         fileListContainer.innerHTML = '';
         fileEntries.forEach(entry => fileListContainer.appendChild(entry.rowElement));
         renderFileList();
@@ -152,9 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeFile = (id) => {
         fileEntries = fileEntries.filter(e => e.id !== id);
         renderFileList();
-        
+
         const row = document.getElementById(`file-row-${id}`);
-        if(row) row.remove();
+        if (row) row.remove();
     };
 
     const createRowElement = (id, file) => {
@@ -184,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <option value="pak21_cbr_h265_4k">pak21_cbr_h265_4k</option>
                         <option value="pak22_cbr_h264_1080p">pak22_cbr_h264_1080p</option>
                         <option value="pak23_cbr_h264_720p">pak23_cbr_h264_720p</option>
+                        <option value="PAC1_ABR_h264_1080p_720p_480p_multi_audio_vod">PAC1_ABR_h264_1080p_720p_480p_multi_audio_vod</option>
                     </select>
                 </div>
             </div>
@@ -247,13 +248,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentListDisplay.innerHTML = '';
                 const activeContents = data.Contents ? data.Contents.filter(c => c.DeploymentState !== 'eDeploymentStateDeleted') : [];
                 currentContentList = activeContents;
-                
+
                 if (activeContents.length > 0) {
                     if (downloadExcelBtn) downloadExcelBtn.classList.remove('hidden');
                     activeContents.forEach(content => {
                         const li = document.createElement('li');
                         li.style.cssText = 'padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 0.5rem;';
-                        
+
                         const topRow = document.createElement('div');
                         topRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%;';
 
@@ -283,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         playBtn.onmouseover = () => playBtn.style.background = 'rgba(59, 130, 246, 0.4)';
                         playBtn.onmouseout = () => playBtn.style.background = 'rgba(59, 130, 246, 0.2)';
-                        
+
                         playBtn.onclick = () => {
                             urlDisplay.style.display = urlDisplay.style.display === 'none' ? 'block' : 'none';
                         };
@@ -343,12 +344,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (downloadExcelBtn) {
         downloadExcelBtn.addEventListener('click', () => {
             if (!currentContentList || currentContentList.length === 0) return;
-            
+
             const serviceId = contentServiceInput.value;
             const excelData = currentContentList.map(content => {
                 const assetName = content.ContentID.split('/').pop();
                 const hlsUrl = content.PlayUrl || content.playUrl || content.URL || content.url || `https://${serviceId}.mydex.tv/bpk-vod/${serviceId}/default/${content.ContentID}/${assetName}/index.m3u8`;
-                
+
                 return {
                     'Content Name': content.ContentID,
                     'Packaged URL': hlsUrl
@@ -356,16 +357,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const worksheet = XLSX.utils.json_to_sheet(excelData);
-            
+
             const wscols = [
-                {wch: 40}, // Content Name
-                {wch: 100} // Packaged URL
+                { wch: 40 }, // Content Name
+                { wch: 100 } // Packaged URL
             ];
             worksheet['!cols'] = wscols;
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Contents");
-            
+
             XLSX.writeFile(workbook, `ContentList_${serviceId}.xlsx`);
         });
     }
@@ -378,14 +379,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (statusClass) row.classList.add(statusClass);
 
         const pSec = row.querySelector('.progress-section');
-        if(pSec) pSec.classList.remove('hidden');
+        if (pSec) pSec.classList.remove('hidden');
 
         const pText = row.querySelector('.progress-text');
         const pBar = row.querySelector('.progress-bar');
         const pPct = row.querySelector('.progress-percentage');
 
-        if(msg && pText) pText.textContent = msg;
-        if(pct !== null && pBar && pPct) {
+        if (msg && pText) pText.textContent = msg;
+        if (pct !== null && pBar && pPct) {
             pBar.style.width = `${pct}%`;
             pPct.textContent = `${pct}%`;
         }
@@ -395,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = entry.file;
         const CHUNK_SIZE = 50 * 1024 * 1024;
         const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-        
+
         setRowStatus(row, 'active', 'Initiating Upload...', 0);
 
         const initRes = await fetch('/api/upload/initiate', {
@@ -408,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const uploadedParts = [];
         let chunksCompleted = 0;
-        const queue = Array.from({length: totalChunks}, (_, i) => i);
+        const queue = Array.from({ length: totalChunks }, (_, i) => i);
 
         const uploadChunk = async (chunkIndex) => {
             const partNumber = chunkIndex + 1;
@@ -441,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let finalEtag = eTag.startsWith('"') ? eTag : '"' + eTag + '"';
                     uploadedParts.push({ PartNumber: partNumber, ETag: finalEtag });
                     chunksCompleted++;
-                    setRowStatus(row, 'active', `Uploading (${chunksCompleted}/${totalChunks})...`, Math.round((chunksCompleted/totalChunks)*100));
+                    setRowStatus(row, 'active', `Uploading (${chunksCompleted}/${totalChunks})...`, Math.round((chunksCompleted / totalChunks) * 100));
                     return;
                 } catch (e) {
                     if (attempt === 3) throw new Error(`Chunk ${partNumber} failed.`);
@@ -483,11 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     setRowStatus(row, 'active', 'Packaging...', 100);
                 } else if (statusData.status === 'COMPLETED') {
                     setRowStatus(row, 'success', 'Completed Successfully', 100);
-                    
+
                     const assetName = assetId.split('/').pop();
                     const hlsUrl = `https://${packagerService}.mydex.tv/bpk-vod/${packagerService}/default/${assetId}/${assetName}/index.m3u8`;
                     const dashUrl = `https://${packagerService}.mydex.tv/bpk-vod/${packagerService}/default/${assetId}/${assetName}/index.mpd`;
-                    
+
                     const linksDiv = row.querySelector('.file-row-links');
                     linksDiv.classList.remove('hidden');
                     linksDiv.innerHTML = `<strong>HLS:</strong> <a href="${hlsUrl}" target="_blank">${hlsUrl}</a><br/><strong>DASH:</strong> <a href="${dashUrl}" target="_blank">${dashUrl}</a>`;
@@ -496,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setRowStatus(row, 'error', `Error: ${statusData.error || 'Unknown error'}`);
                     throw new Error(JSON.stringify(statusData.error || statusData.packagerResponse));
                 }
-            } catch(e) {
+            } catch (e) {
                 if (e.message.includes('JSON')) throw e; // Fatal error
                 // else transient poll error, keep trying
             }
@@ -554,17 +555,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/batch-transcode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ files: toProcess.map(f => ({
-                    s3Key: f.s3Key,
-                    assetId: f.assetId,
-                    service: f.service,
-                    packagerService: f.packagerService
-                })) })
+                body: JSON.stringify({
+                    files: toProcess.map(f => ({
+                        s3Key: f.s3Key,
+                        assetId: f.assetId,
+                        service: f.service,
+                        packagerService: f.packagerService
+                    }))
+                })
             });
             if (!res.ok) throw new Error('Failed to start batch processing');
             showAlert('All files uploaded. Processing started on server.', 'success');
             batchProcessBtn.innerHTML = 'Batch Upload Complete';
-            
+
             // Start polling for each file asynchronously
             toProcess.forEach(f => {
                 pollStatus(f.row, f.assetId, f.packagerService).catch(err => {
