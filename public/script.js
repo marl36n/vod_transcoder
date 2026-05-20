@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <option value="pak21_cbr_h265_4k">pak21_cbr_h265_4k</option>
                         <option value="pak22_cbr_h264_1080p">pak22_cbr_h264_1080p</option>
                         <option value="pak23_cbr_h264_720p">pak23_cbr_h264_720p</option>
-                        <option value="PAC1_ABR_h264_1080p_720p_480p_multi_audio_vod">PAC1_ABR_h264_1080p_720p_480p_multi_audio_vod</option>
+                        <option value="PAC1_ABR_h264_1080p_720p_480p_multi_audio_vod_ENG_BEB_HIN">PAC1_ABR_h264_1080p_720p_480p_multi_audio_vod_ENG_BEB_HIN</option>
                     </select>
                 </div>
             </div>
