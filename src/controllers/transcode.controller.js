@@ -40,7 +40,11 @@ const processTranscode = async (data) => {
     console.log(curlEquivalent);
     console.log('---------------------------------------\n');
 
-    return await apiService.triggerTranscode(env.apis.transcoding, apiPayload);
+    console.log(`[Controller] Awaiting apiService.triggerTranscode for ${finalAssetId}...`);
+    const apiResponse = await apiService.triggerTranscode(env.apis.transcoding, apiPayload);
+    console.log(`[Controller] apiService.triggerTranscode completed for ${finalAssetId}.`);
+    
+    return apiResponse;
 };
 
 const triggerTranscode = async (req, res) => {
@@ -68,15 +72,20 @@ const batchTranscode = async (req, res) => {
         return res.status(400).json({ error: 'files array required' });
     }
 
+    console.log(`\n[Controller] batchTranscode initiated for ${files.length} files.`);
+
     (async () => {
         for (const file of files) {
+            console.log(`[Controller] Batch loop: Starting processTranscode for asset: ${file.assetId}`);
             try {
                 await processTranscode(file);
+                console.log(`[Controller] Batch loop: processTranscode successfully finished for asset: ${file.assetId}`);
                 await new Promise(r => setTimeout(r, 1000));
             } catch (err) {
-                console.error('Batch transcode error for', file.assetId, err.message);
+                console.error(`[Controller] Batch transcode error for asset: ${file.assetId}`, err.message);
             }
         }
+        console.log(`[Controller] Batch transcode loop completed for all files.`);
     })();
 
     res.json({ success: true, message: 'Batch processing started' });
