@@ -472,7 +472,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pollStatus = async (row, assetId, packagerService) => {
         setRowStatus(row, 'active', 'Processing...', 0);
+        const startTime = Date.now();
+        const TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes absolute timeout
+        
         while (true) {
+            if (Date.now() - startTime > TIMEOUT_MS) {
+                setRowStatus(row, 'error', 'Error: Transcoding timed out waiting for callback');
+                throw new Error('Polling timed out waiting for callback');
+            }
+
             await sleep(3000);
             try {
                 const statusRes = await fetch(`/api/status/${encodeURIComponent(assetId)}`);

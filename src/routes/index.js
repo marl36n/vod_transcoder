@@ -11,14 +11,14 @@ const { authenticateToken } = require('../middleware/auth.middleware');
 
 router.use('/', authRoutes);
 
+// Transcode callback path (UNPROTECTED)
+router.post('/callback', transcodeController.handleCallback);
+
 // Protected routes
 router.use('/upload', authenticateToken, uploadRoutes);
 router.use('/transcode', authenticateToken, transcodeRoutes);
 router.post('/batch-transcode', authenticateToken, transcodeController.batchTranscode);
 router.use('/status', authenticateToken, statusRoutes);
 router.use('/', authenticateToken, contentRoutes);
-
-// Transcode callback path (UNPROTECTED)
-router.post('/callback', transcodeController.handleCallback);
 
 module.exports = router;
